@@ -16,6 +16,7 @@ def train(model, optimizer, criterion, dataloader):
 
     for img1, img2, label in dataloader:
         optimizer.zero_grad()
+
         img1, img2 = img1.to(device), img2.to(device)
         output1, output2 = model(img1, img2)
 
@@ -62,10 +63,7 @@ lr = 0.001
 epochs = 20
 
 ## TODO: Repace transforms here with Mads' OP OP methods
-train_dataset = SiameseDataset(train=True, mnist=True, svhn=True, mix=True, transform=torchvision.transforms.Compose([
-    torchvision.transforms.ToTensor(),
-    torchvision.transforms.Resize((28, 28)),
-    torchvision.transforms.Grayscale()]))
+train_dataset = SiameseDataset(train=True, mnist=False, svhn=True, mix=True)
 
 k_fold = KFold(n_splits=k_fold_splits)
 

@@ -1,26 +1,33 @@
-import cv2 as cv
 import numpy as np
-import torch
 import torchvision
-import torchvision.transforms as T
 from torch.utils.data import Dataset
-from torchvision.transforms import ToTensor
+
+from transforms import ResizeGrayscale, EqualizeHist, CLAHE
 
 
 class SiameseDataset(Dataset):
-    def __init__(self, train: bool, mnist=False, svhn=False, mix=False, transform=ToTensor()):
+    def __init__(self, train: bool, mnist=False, svhn=False, mix=False):
         self.mnist_dataset = None
         self.svhn_dataset = None
 
         if mnist:
-            self.mnist_dataset = torchvision.datasets.MNIST("files", train=train, download=True, transform=transform)
+            self.mnist_dataset = torchvision.datasets.MNIST("files", train=train, download=True,
+                                                            transform=torchvision.transforms.ToTensor())
+
         if svhn:
             if train:
                 split = "train"
             else:
                 split = "test"
 
-            self.svhn_dataset = torchvision.datasets.SVHN(root="data", split=split, download=True, transform=transform)
+            self.svhn_dataset = torchvision.datasets.SVHN(root="data", split=split, download=True,
+                                                          transform=torchvision.transforms.Compose([
+                                                              torchvision.transforms.ToTensor(),
+                                                              ResizeGrayscale(),
+                                                              # EqualizeHist(),
+                                                              # AdaptiveThreshold(),
+                                                              # CLAHE()
+                                                          ]))
 
         # used to prepare the labels and images path
         self.pairs = make_pairs(mix, self.mnist_dataset, self.svhn_dataset)
@@ -33,21 +40,15 @@ class SiameseDataset(Dataset):
         img2_dataset, img2_index = self.pairs[index][1]
         matching = self.pairs[index][2]
 
-        return self.dataset[img1_dataset].__getitem__(img1_index)[0], self.dataset[img2_dataset].__getitem__(img2_index)[0], matching
 
+        return self.dataset[img1_dataset].__getitem__(img1_index)[0], \
+               self.dataset[img2_dataset].__getitem__(img2_index)[0], matching
 
     def __len__(self):
         return len(self.pairs)
 
-    def svhn_inverse_greyscale(self):
-        for image in self.svhn_dataset.data:
-            gray_svhn = T.Grayscale()(torch.from_numpy(image))
-            normalized = cv.normalize(gray_svhn, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX, dtype=cv.CV_32F)
-            gray_svhn2 = 255 - gray_svhn2
 
-
-
-def make_pairs(mix, mnist = None, svhn = None):
+def make_pairs(mix, mnist=None, svhn=None):
     pairs = []
 
     num_classes = 10
@@ -74,7 +75,6 @@ def make_pairs(mix, mnist = None, svhn = None):
 
             pairs.append([(dataset_pos, anchor_idx), (dataset_pos, neg_idx), 1])
     if mnist:
-        ##TODO start from prev index in pairs
         mnist_labels = mnist.targets
         mnist_idx = [np.where(mnist_labels == i)[0] for i in range(0, num_classes)]
         dataset_pos = 0
@@ -96,13 +96,14 @@ def make_pairs(mix, mnist = None, svhn = None):
 
     return pairs
 
+
 def add_pairs_mix(dataset_labels, dataset_pos, mnist_idx, svhn_idx, num_classes):
     pairs = []
     for anchor_idx in range(len(dataset_labels)):
         mnist_label = dataset_labels[anchor_idx]
 
         dataset_choice = np.random.randint(0, 2)
-        #0 = MNIST, 1 = SVHN
+        # 0 = MNIST, 1 = SVHN
 
         if dataset_choice == 0:
             pos_idx = np.random.choice(mnist_idx[mnist_label])
@@ -111,7 +112,7 @@ def add_pairs_mix(dataset_labels, dataset_pos, mnist_idx, svhn_idx, num_classes)
 
         pairs.append([(dataset_pos, anchor_idx), (dataset_choice, pos_idx), 0])
 
-        negative_label = np.random.randint(0, num_classes )
+        negative_label = np.random.randint(0, num_classes)
         while negative_label == mnist_label:
             negative_label = np.random.randint(0, num_classes)
 
@@ -125,7 +126,7 @@ def add_pairs_mix(dataset_labels, dataset_pos, mnist_idx, svhn_idx, num_classes)
         pairs.append([(dataset_pos, anchor_idx), (dataset_choice, neg_idx), 1])
     return pairs
 
-# TODO: Consider cleaning up this into a single for loop instead
+
 def mix_pairs(mnist, num_classes, svhn):
     pairs = []
     ### Add mixing of datasets
