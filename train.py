@@ -61,6 +61,7 @@ batch_size = 128
 lr = 0.001
 epochs = 20
 
+## TODO: Repace transforms here with Mads' OP OP methods
 train_dataset = SiameseDataset(train=True, mnist=True, svhn=True, mix=True, transform=torchvision.transforms.Compose([
     torchvision.transforms.ToTensor(),
     torchvision.transforms.Resize((28, 28)),
@@ -73,9 +74,8 @@ for fold, (train_idx, val_idx) in enumerate(k_fold.split(train_dataset)):
     train_subsampler = torch.utils.data.SubsetRandomSampler(train_idx)
     val_subsampler = torch.utils.data.SubsetRandomSampler(val_idx)
 
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, sampler=train_subsampler)
-    val_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, sampler=val_subsampler)
-
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, sampler=train_subsampler)
+    val_dataloader = DataLoader(train_dataset, batch_size=batch_size, sampler=val_subsampler)
 
     net = SiameseNetwork().to(device)
     contrastive_loss = ContrastiveLoss()
@@ -84,8 +84,9 @@ for fold, (train_idx, val_idx) in enumerate(k_fold.split(train_dataset)):
     rounds_without_improvement = 0
     best_loss = float('inf')
 
+    print(f"--FOLD {fold + 1}--\n")
     for epoch in range(epochs):
-        print(f"--EPOCH {epoch+1}--")
+        print(f"--EPOCH {epoch + 1}--")
 
         train_loss = train(model=net, optimizer=adam, criterion=contrastive_loss, dataloader=train_dataloader)
         print(f"Train loss {train_loss}")
@@ -100,6 +101,6 @@ for fold, (train_idx, val_idx) in enumerate(k_fold.split(train_dataset)):
         else:
             rounds_without_improvement += 1
 
-        if (rounds_without_improvement > 3 or epoch == epochs-1):
-            save_model(model=net, name=f"best_model.pt")
+        if (rounds_without_improvement > 3 or epoch == epochs - 1):
+            save_model(model=net, name=f"fold{fold}epoch{epoch}.pt")
             break
