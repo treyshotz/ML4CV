@@ -2,17 +2,20 @@ import numpy as np
 import torchvision
 from torch.utils.data import Dataset
 
-from transforms import ResizeGrayscale, EqualizeHist, CLAHE
+from transforms import ResizeGrayscale
 
 
 class SiameseDataset(Dataset):
-    def __init__(self, train: bool, mnist=False, svhn=False, mix=False):
+    def __init__(self, train: bool, transforms, mnist=False, svhn=False, mix=False, ):
         self.mnist_dataset = None
         self.svhn_dataset = None
+        self.transforms = transforms
 
         if mnist:
             self.mnist_dataset = torchvision.datasets.MNIST("files", train=train, download=True,
-                                                            transform=torchvision.transforms.ToTensor())
+                                                            transform=torchvision.transforms.Compose([
+                                                                                                         torchvision.transforms.ToTensor(),
+                                                                                                     ] + self.transforms))
 
         if svhn:
             if train:
@@ -22,12 +25,9 @@ class SiameseDataset(Dataset):
 
             self.svhn_dataset = torchvision.datasets.SVHN(root="data", split=split, download=True,
                                                           transform=torchvision.transforms.Compose([
-                                                              torchvision.transforms.ToTensor(),
-                                                              ResizeGrayscale(),
-                                                              # EqualizeHist(),
-                                                              # AdaptiveThreshold(),
-                                                              # CLAHE()
-                                                          ]))
+                                                                                                       torchvision.transforms.ToTensor(),
+                                                                                                       ResizeGrayscale(),
+                                                                                                   ] + self.transforms))
 
         # used to prepare the labels and images path
         self.pairs = make_pairs(mix, self.mnist_dataset, self.svhn_dataset)
@@ -39,7 +39,6 @@ class SiameseDataset(Dataset):
         img1_dataset, img1_index = self.pairs[index][0]
         img2_dataset, img2_index = self.pairs[index][1]
         matching = self.pairs[index][2]
-
 
         return self.dataset[img1_dataset].__getitem__(img1_index)[0], \
                self.dataset[img2_dataset].__getitem__(img2_index)[0], matching

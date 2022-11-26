@@ -1,46 +1,40 @@
 import torch
 import torch.nn.functional as F
-import torchvision
 from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader
 
-from dataset import SiameseDataset
 
-test_dataset = SiameseDataset(train=False, mnist=True, svhn=True, mix=True, transform=torchvision.transforms.Compose([
-    torchvision.transforms.ToTensor(),
-    torchvision.transforms.Resize((28, 28)),
-    torchvision.transforms.Grayscale()]))
+def test_pipeline(test_dataset, computing_device):
+    test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=True)
+    model = torch.jit.load("fold0epoch29.pt").to(computing_device)
+    count = 1
+    for img1, img2, label in test_dataloader:
+        output1, output2 = model(img1, img2)
 
-test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=True)
+        figure = plt.figure(figsize=(8, 8))
+        figure.suptitle(f'Image no.{count}', fontsize=16)
 
-model = torch.jit.load("best_model.pt").to(device)
+        ax = figure.add_subplot(1, 2, 1)
+        ax.set_title("Img1")
+        plt.axis("off")
+        plt.imshow(img1.squeeze(), cmap="gray")
+        ax = figure.add_subplot(1, 2, 2)
+        ax.set_title("Img2")
+        plt.axis("off")
+        plt.imshow(img2.squeeze(), cmap="gray")
 
-count = 1
-for img1, img2, label in test_dataloader:
-    output1, output2 = model(img1, img2)
+        plt.show()
 
-    figure = plt.figure(figsize=(8, 8))
+        print(f"Image no.{count}")
+        if label == torch.FloatTensor([[0]]):
+            label = "Same numbers"
+        else:
+            label = "Different numbers"
 
-    ax = figure.add_subplot(1, 2, 1)
-    ax.set_title("Img1")
-    plt.axis("off")
-    plt.imshow(img1.squeeze(), cmap="gray")
-    ax = figure.add_subplot(1, 2, 2)
-    ax.set_title("Img2")
-    plt.axis("off")
-    plt.imshow(img2.squeeze(), cmap="gray")
+        print(f"Correct label: '{label}'")
+        print(F.pairwise_distance(output1, output2).item())
+        print()
 
-    plt.show()
-
-    if label == torch.FloatTensor([[0]]):
-         label = "Same numbers"
-    else:
-        label = "Different numbers"
-
-    print(label)
-    print(F.pairwise_distance(output1, output2).item())
-    print()
-
-    count += 1
-    if (count > 10):
-        break
+        count += 1
+        if (count > 10):
+            break

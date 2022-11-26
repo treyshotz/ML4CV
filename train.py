@@ -1,12 +1,13 @@
+import time
+
 import numpy as np
-from sklearn.model_selection import KFold
 import torch
-import torchvision
 from torch.utils.data import DataLoader
 
 from contrastive_loss import ContrastiveLoss
-from dataset import SiameseDataset
 from model import SiameseNetwork
+
+device = ""
 
 
 def train(model, optimizer, criterion, dataloader):
@@ -24,6 +25,7 @@ def train(model, optimizer, criterion, dataloader):
         loss_contrastive.backward()
         optimizer.step()
         loss.append(loss_contrastive.item())
+
 
     loss = np.array(loss)
     return loss.mean() / len(dataloader)
@@ -54,51 +56,43 @@ def validate(model, criterion, dataloader):
     return loss.mean() / len(dataloader)
 
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print(device)
+def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, computing_device):
+    global device
+    device = computing_device
 
-k_fold_splits = 5
-batch_size = 128
-lr = 0.001
-epochs = 20
+    global contrastive_loss
+    for fold, (train_idx, val_idx) in enumerate(k_fold.split(train_dataset)):
 
-## TODO: Repace transforms here with Mads' OP OP methods
-train_dataset = SiameseDataset(train=True, mnist=False, svhn=True, mix=True)
+        train_subsampler = torch.utils.data.SubsetRandomSampler(train_idx)
+        val_subsampler = torch.utils.data.SubsetRandomSampler(val_idx)
 
-k_fold = KFold(n_splits=k_fold_splits)
+        train_dataloader = DataLoader(train_dataset, batch_size=batch_size, sampler=train_subsampler)
+        val_dataloader = DataLoader(train_dataset, batch_size=batch_size, sampler=val_subsampler)
 
-for fold, (train_idx, val_idx) in enumerate(k_fold.split(train_dataset)):
+        net = SiameseNetwork().to(computing_device)
+        contrastive_loss = ContrastiveLoss()
+        adam = torch.optim.Adam(net.parameters(), lr=lr)
 
-    train_subsampler = torch.utils.data.SubsetRandomSampler(train_idx)
-    val_subsampler = torch.utils.data.SubsetRandomSampler(val_idx)
+        rounds_without_improvement = 0
+        best_loss = float('inf')
 
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, sampler=train_subsampler)
-    val_dataloader = DataLoader(train_dataset, batch_size=batch_size, sampler=val_subsampler)
+        print(f"--FOLD {fold + 1}--\n")
+        for epoch in range(epochs):
+            print(f"--EPOCH {epoch + 1}--")
 
-    net = SiameseNetwork().to(device)
-    contrastive_loss = ContrastiveLoss()
-    adam = torch.optim.Adam(net.parameters(), lr=lr)
+            train_loss = train(model=net, optimizer=adam, criterion=contrastive_loss, dataloader=train_dataloader)
+            print(f"Train loss {train_loss}")
 
-    rounds_without_improvement = 0
-    best_loss = float('inf')
+            val_loss = validate(model=net, criterion=contrastive_loss, dataloader=val_dataloader)
+            print(f"Val loss {val_loss}")
 
-    print(f"--FOLD {fold + 1}--\n")
-    for epoch in range(epochs):
-        print(f"--EPOCH {epoch + 1}--")
+            if (val_loss < best_loss):
+                best_loss = val_loss
+                best_model = net
+                rounds_without_improvement = 0
+            else:
+                rounds_without_improvement += 1
 
-        train_loss = train(model=net, optimizer=adam, criterion=contrastive_loss, dataloader=train_dataloader)
-        print(f"Train loss {train_loss}")
-
-        val_loss = validate(model=net, criterion=contrastive_loss, dataloader=val_dataloader)
-        print(f"Val loss {val_loss}")
-
-        if (val_loss < best_loss):
-            best_loss = val_loss
-            best_model = net
-            rounds_without_improvement = 0
-        else:
-            rounds_without_improvement += 1
-
-        if (rounds_without_improvement > 3 or epoch == epochs - 1):
-            save_model(model=net, name=f"fold{fold}epoch{epoch}.pt")
-            break
+            if (rounds_without_improvement > 3 or epoch == epochs - 1):
+                save_model(model=net, name=f"fold{fold}-epoch{epoch}-transforms{train_dataset.transforms}.pt")
+                break
