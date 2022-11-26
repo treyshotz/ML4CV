@@ -1,10 +1,10 @@
 import torch
 from sklearn.model_selection import KFold
 
-from dataset import SiameseDataset
-import train
 import test
-from transforms import AdaptiveThreshold, CLAHE, EqualizeHist
+import train
+from dataset import SiameseDataset
+from transforms import AdaptiveThreshold, EqualizeHist
 
 
 class Pipelines:
@@ -76,7 +76,7 @@ print(device)
 
 first_config = Pipelines(
     k_fold_splits=5,
-    batch_size=128,
+    batch_size=4084,
     lr=0.001,
     epochs=20,
     transforms=[
