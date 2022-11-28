@@ -88,7 +88,7 @@ def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, computing_devi
 
             if (val_loss < best_loss):
                 best_loss = val_loss
-                save_model(model=net, name=f"fold{fold}-epoch{epoch}-transforms{train_dataset.transforms}.pt")
+                save_model(model=net, name=f"fold{fold}-epoch{epoch}-transforms{train_dataset.transform}.pt")
                 rounds_without_improvement = 0
             else:
                 rounds_without_improvement += 1
