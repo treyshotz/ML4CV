@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 import torchvision
 from torch.utils.data import Dataset
 
@@ -10,12 +11,14 @@ class SiameseDataset(Dataset):
         self.mnist_dataset = None
         self.svhn_dataset = None
         self.transforms = transforms
+        self.pre_processed = False
 
         if mnist:
             self.mnist_dataset = torchvision.datasets.MNIST("files", train=train, download=True,
                                                             transform=torchvision.transforms.Compose([
                                                                                                          torchvision.transforms.ToTensor(),
                                                                                                      ] + self.transforms))
+            self.mnist_preprocessed = torch.zeros((len(self.mnist_dataset.data), 1, 28, 28))
 
         if svhn:
             if train:
@@ -28,20 +31,31 @@ class SiameseDataset(Dataset):
                                                                                                        torchvision.transforms.ToTensor(),
                                                                                                        ResizeGrayscale(),
                                                                                                    ] + self.transforms))
-
+            self.svhn_preprocessed = torch.zeros((len(self.svhn_dataset.data), 1, 28, 28))
         # used to prepare the labels and images path
         self.pairs = make_pairs(mix, self.mnist_dataset, self.svhn_dataset)
 
         self.dataset = [self.mnist_dataset] + [self.svhn_dataset]
+        self.pre_processed_dataset = [self.mnist_preprocessed] + [self.svhn_preprocessed]
 
     def __getitem__(self, index):
 
         img1_dataset, img1_index = self.pairs[index][0]
         img2_dataset, img2_index = self.pairs[index][1]
+
         matching = self.pairs[index][2]
 
-        return self.dataset[img1_dataset].__getitem__(img1_index)[0], \
-               self.dataset[img2_dataset].__getitem__(img2_index)[0], matching
+        if self.pre_processed:
+            return self.pre_processed_dataset[img1_dataset][img1_index], \
+                   self.pre_processed_dataset[img2_dataset][img2_index], matching
+        else:
+            pre_img1 = self.dataset[img1_dataset].__getitem__(img1_index)[0]
+            pre_img2 = self.dataset[img2_dataset].__getitem__(img2_index)[0]
+
+            self.pre_processed_dataset[img1_dataset][img1_index] = pre_img1
+            self.pre_processed_dataset[img2_dataset][img2_index] = pre_img2
+
+            return pre_img1, pre_img2, matching
 
     def __len__(self):
         return len(self.pairs)
