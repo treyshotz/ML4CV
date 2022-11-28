@@ -4,8 +4,8 @@ from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader
 
 
-def test_pipeline(test_dataset, computing_device):
-    test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=True)
+def test_pipeline(test_dataset, computing_device, num_workers):
+    test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=True, num_workers=num_workers)
     model = torch.jit.load("fold0epoch29.pt").to(computing_device)
     count = 1
     for img1, img2, label in test_dataloader:

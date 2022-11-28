@@ -1,13 +1,8 @@
-import time
 from enum import Enum
 
 import numpy as np
 import torchvision
-from matplotlib import pyplot as plt
-from torch.utils.data import Dataset, DataLoader
-from torchvision.transforms import ToTensor
-
-from transforms import Resize, GrayScale, ToNumpy, EqualizeHist, AdaptiveThreshold
+from torch.utils.data import Dataset
 
 
 class DatasetType(Enum):
@@ -110,40 +105,3 @@ class SiameseDataset(Dataset):
                         pairs.append([dataset_index, anchor_image, neg_dataset_index, neg_image, 1])
 
         return pairs
-
-
-t = torchvision.transforms.Compose([
-    ToNumpy(),
-    Resize(),
-    GrayScale(),
-    EqualizeHist(),
-    AdaptiveThreshold(),
-    ToTensor(),
-])
-
-
-d = SiameseDataset(train=True, dataset_type=DatasetType.MIX, transform=t)
-
-dl = DataLoader(d, shuffle=True, batch_size=2)
-start = time.time()
-batch = dl.__iter__().next()
-end = time.time()
-
-figure = plt.figure(figsize=(12, 8))
-for i in range(len(batch[0])):
-    ax = figure.add_subplot(2, 2, i*2+1)
-    ax.set_title("Img")
-    plt.axis("off")
-    plt.imshow(batch[0][i].squeeze(), cmap="gray")
-
-    ax = figure.add_subplot(2, 2, i*2+2)
-    ax.set_title("Img2")
-    plt.axis("off")
-    plt.imshow(batch[1][i].squeeze(), cmap="gray")
-
-    print(batch[2][i])
-
-
-plt.show()
-print(end - start)
-print()

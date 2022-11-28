@@ -56,7 +56,7 @@ def validate(model, criterion, dataloader):
     return loss.mean() / len(dataloader)
 
 
-def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, computing_device):
+def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, computing_device, num_workers):
     global device
     device = computing_device
 
@@ -66,8 +66,8 @@ def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, computing_devi
         train_subsampler = torch.utils.data.SubsetRandomSampler(train_idx)
         val_subsampler = torch.utils.data.SubsetRandomSampler(val_idx)
 
-        train_dataloader = DataLoader(train_dataset, batch_size=batch_size, sampler=train_subsampler)
-        val_dataloader = DataLoader(train_dataset, batch_size=batch_size, sampler=val_subsampler)
+        train_dataloader = DataLoader(train_dataset, batch_size=batch_size, sampler=train_subsampler, num_workers=num_workers)
+        val_dataloader = DataLoader(train_dataset, batch_size=batch_size, sampler=val_subsampler, num_workers=num_workers)
 
         net = SiameseNetwork().to(computing_device)
         contrastive_loss = ContrastiveLoss()
@@ -88,11 +88,10 @@ def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, computing_devi
 
             if (val_loss < best_loss):
                 best_loss = val_loss
-                best_model = net
+                save_model(model=net, name=f"fold{fold}-epoch{epoch}-transforms{train_dataset.transforms}.pt")
                 rounds_without_improvement = 0
             else:
                 rounds_without_improvement += 1
 
             if (rounds_without_improvement > 3 or epoch == epochs - 1):
-                save_model(model=net, name=f"fold{fold}-epoch{epoch}-transforms{train_dataset.transforms}.pt")
                 break
