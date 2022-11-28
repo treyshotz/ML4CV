@@ -4,9 +4,15 @@ from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader
 
 
-def test_pipeline(test_dataset, computing_device, num_workers):
+def test_pipeline(test_dataset, computing_device, num_workers, model):
     test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=True, num_workers=num_workers)
-    model = torch.jit.load("fold0epoch29.pt").to(computing_device)
+
+    #Load from disk based on the model name
+    if isinstance(model, str):
+        model = torch.jit.load(f"{model}.pt").to(computing_device)
+
+    model = model.to(computing_device)
+
     count = 1
     for img1, img2, label in test_dataloader:
         output1, output2 = model(img1, img2)

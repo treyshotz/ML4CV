@@ -24,46 +24,54 @@ class Pipelines:
     def mnist_svhn_mix_pipeline(self):
         k_fold = KFold(n_splits=self.k_fold_splits)
         train_dataset = SiameseDataset(train=True, dataset_type=DatasetType.MIX, transform=self.transform)
-        train.train_pipeline(epochs=self.epochs, k_fold=k_fold, batch_size=self.batch_size, train_dataset=train_dataset,
-                             lr=self.lr, computing_device=self.device, num_workers=self.num_workers)
+        model = train.train_pipeline(epochs=self.epochs, k_fold=k_fold, batch_size=self.batch_size,
+                                     train_dataset=train_dataset,
+                                     lr=self.lr, computing_device=self.device, num_workers=self.num_workers)
 
         del train_dataset
 
-        # test_dataset = SiameseDataset(train=False, dataset_type=DatasetType.MIX, transform=self.transform)
-        # test.test_pipeline(test_dataset=test_dataset, computing_device=self.device, num_workers=self.num_workers)
+        test_dataset = SiameseDataset(train=False, dataset_type=DatasetType.MIX, transform=self.transform)
+        test.test_pipeline(test_dataset=test_dataset, computing_device=self.device, num_workers=self.num_workers,
+                           model=model)
 
     def mnist_svhn_pipeline(self):
         k_fold = KFold(n_splits=self.k_fold_splits)
         train_dataset = SiameseDataset(train=True, dataset_type=DatasetType.BOTH, transform=self.transform)
-        train.train_pipeline(epochs=self.epochs, k_fold=k_fold, batch_size=self.batch_size, train_dataset=train_dataset,
-                             lr=self.lr, computing_device=device, num_workers=self.num_workers)
+        model = train.train_pipeline(epochs=self.epochs, k_fold=k_fold, batch_size=self.batch_size,
+                                     train_dataset=train_dataset,
+                                     lr=self.lr, computing_device=device, num_workers=self.num_workers)
 
         del train_dataset
 
-        # test_dataset = SiameseDataset(train=False, dataset_type=DatasetType.BOTH, transform=self.transform)
-        # test.test_pipeline(test_dataset=test_dataset, computing_device=device, num_workers=self.num_workers)
+        test_dataset = SiameseDataset(train=False, dataset_type=DatasetType.BOTH, transform=self.transform)
+        test.test_pipeline(test_dataset=test_dataset, computing_device=self.device, num_workers=self.num_workers,
+                           model=model)
 
     def mnist_pipeline(self):
         k_fold = KFold(n_splits=self.k_fold_splits)
         train_dataset = SiameseDataset(train=True, dataset_type=DatasetType.MNIST, transform=self.transform)
-        train.train_pipeline(epochs=self.epochs, k_fold=k_fold, batch_size=self.batch_size, train_dataset=train_dataset,
-                             lr=self.lr, computing_device=device, num_workers=self.num_workers)
+        model = train.train_pipeline(epochs=self.epochs, k_fold=k_fold, batch_size=self.batch_size,
+                                     train_dataset=train_dataset,
+                                     lr=self.lr, computing_device=device, num_workers=self.num_workers)
 
         del train_dataset
 
-        # test_dataset = SiameseDataset(train=False, dataset_type=DatasetType.MNIST, transform=self.transform)
-        # test.test_pipeline(test_dataset=test_dataset, computing_device=device, num_workers=self.num_workers)
+        test_dataset = SiameseDataset(train=False, dataset_type=DatasetType.MNIST, transform=self.transform)
+        test.test_pipeline(test_dataset=test_dataset, computing_device=self.device, num_workers=self.num_workers,
+                           model=model)
 
     def svhn_pipeline(self):
         k_fold = KFold(n_splits=self.k_fold_splits)
         train_dataset = SiameseDataset(train=True, dataset_type=DatasetType.SVHN, transform=self.transform)
-        train.train_pipeline(epochs=self.epochs, k_fold=k_fold, batch_size=self.batch_size, train_dataset=train_dataset,
-                             lr=self.lr, computing_device=device, num_workers=self.num_workers)
+        model = train.train_pipeline(epochs=self.epochs, k_fold=k_fold, batch_size=self.batch_size,
+                                     train_dataset=train_dataset,
+                                     lr=self.lr, computing_device=device, num_workers=self.num_workers)
 
         del train_dataset
 
-        # test_dataset = SiameseDataset(train=False, dataset_type=DatasetType.SVHN, transform=self.transform)
-        # test.test_pipeline(test_dataset=test_dataset, computing_device=device, num_workers=self.num_workers)
+        test_dataset = SiameseDataset(train=False, dataset_type=DatasetType.SVHN, transform=self.transform)
+        test.test_pipeline(test_dataset=test_dataset, computing_device=self.device, num_workers=self.num_workers,
+                           model=model)
 
     def all_pipelines(self):
         self.mnist_svhn_mix_pipeline()
