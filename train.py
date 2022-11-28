@@ -18,7 +18,7 @@ def train(model, optimizer, criterion, dataloader):
     for img1, img2, label in dataloader:
         optimizer.zero_grad()
 
-        img1, img2 = img1.to(device), img2.to(device)
+        img1, img2, label = img1.to(device), img2.to(device), label.to(device)
         output1, output2 = model(img1, img2)
 
         loss_contrastive = criterion(output1, output2, label)
@@ -46,7 +46,7 @@ def validate(model, criterion, dataloader):
 
     with torch.no_grad():
         for img1, img2, label in dataloader:
-            img1, img2 = img1.to(device), img2.to(device)
+            img1, img2, label = img1.to(device), img2.to(device), label.to(device)
             output1, output2 = model(img1, img2)
 
             loss_contrastive = criterion(output1, output2, label)
@@ -81,6 +81,7 @@ def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, computing_devi
             print(f"--EPOCH {epoch + 1}--")
 
             train_loss = train(model=net, optimizer=adam, criterion=contrastive_loss, dataloader=train_dataloader)
+            train_dataset.pre_processed = True
             print(f"Train loss {train_loss}")
 
             val_loss = validate(model=net, criterion=contrastive_loss, dataloader=val_dataloader)

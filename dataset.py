@@ -1,157 +1,126 @@
+from enum import Enum
+
 import numpy as np
 import torch
 import torchvision
 from torch.utils.data import Dataset
 
-from transforms import ResizeGrayscale
+
+class DatasetType(Enum):
+    MNIST = 1,
+    SVHN = 2,
+    BOTH = 3,
+    MIX = 4
 
 
 class SiameseDataset(Dataset):
-    def __init__(self, train: bool, transforms, mnist=False, svhn=False, mix=False, ):
-        self.mnist_dataset = None
-        self.svhn_dataset = None
-        self.transforms = transforms
+    def __init__(self, train: bool, dataset_type: DatasetType, transform=None):
+        self.mnist = None
+        self.svhn = None
+        self.dataset_type = dataset_type
+        self.transform = transform
         self.pre_processed = False
 
-        if mnist:
-            self.mnist_dataset = torchvision.datasets.MNIST("files", train=train, download=True,
-                                                            transform=torchvision.transforms.Compose([
-                                                                                                         torchvision.transforms.ToTensor(),
-                                                                                                     ] + self.transforms))
-            self.mnist_preprocessed = torch.zeros((len(self.mnist_dataset.data), 1, 28, 28))
+        self.num_classes = 10
 
-        if svhn:
-            if train:
-                split = "train"
-            else:
-                split = "test"
+        if self.dataset_type != DatasetType.SVHN:
+            self.mnist = torchvision.datasets.MNIST("files", train=train, download=True)
+            self.mnist_preprocessed = torch.zeros((len(self.mnist.data), 1, 28, 28))
 
-            self.svhn_dataset = torchvision.datasets.SVHN(root="data", split=split, download=True,
-                                                          transform=torchvision.transforms.Compose([
-                                                                                                       torchvision.transforms.ToTensor(),
-                                                                                                       ResizeGrayscale(),
-                                                                                                   ] + self.transforms))
-            self.svhn_preprocessed = torch.zeros((len(self.svhn_dataset.data), 1, 28, 28))
-        # used to prepare the labels and images path
-        self.pairs = make_pairs(mix, self.mnist_dataset, self.svhn_dataset)
+        if self.dataset_type != DatasetType.MNIST:
+            self.svhn = torchvision.datasets.SVHN(root="data", split="train" if train else "test", download=True)
+            self.svhn_preprocessed = torch.zeros((len(self.svhn.data), 1, 28, 28))
 
-        self.dataset = [self.mnist_dataset] + [self.svhn_dataset]
-        self.pre_processed_dataset = [self.mnist_preprocessed] + [self.svhn_preprocessed]
+        self.pairs = self.make_pairs()
 
     def __getitem__(self, index):
-
-        img1_dataset, img1_index = self.pairs[index][0]
-        img2_dataset, img2_index = self.pairs[index][1]
-
-        matching = self.pairs[index][2]
+        img1_dataset, img1_index, img2_dataset, img2_index, matching = self.pairs[index]
 
         if self.pre_processed:
-            return self.pre_processed_dataset[img1_dataset][img1_index], \
-                   self.pre_processed_dataset[img2_dataset][img2_index], matching
+            img1 = self.mnist_preprocessed[img1_index] if (img1_dataset == 0) else self.svhn_preprocessed[img1_index]
+            img2 = self.svhn_preprocessed[img1_index] if (img1_dataset == 0) else self.svhn_preprocessed[img1_index]
+
         else:
-            pre_img1 = self.dataset[img1_dataset].__getitem__(img1_index)[0]
-            pre_img2 = self.dataset[img2_dataset].__getitem__(img2_index)[0]
+            img1 = self.mnist.data[img1_index] if (img1_dataset == 0) else self.svhn.data[img1_index]
+            img2 = self.mnist.data[img2_index] if (img2_dataset == 0) else self.svhn.data[img2_index]
 
-            self.pre_processed_dataset[img1_dataset][img1_index] = pre_img1
-            self.pre_processed_dataset[img2_dataset][img2_index] = pre_img2
+            img1 = self.transform(img1)
+            img2 = self.transform(img2)
 
-            return pre_img1, pre_img2, matching
+            if img1_dataset == 0:
+                self.mnist_preprocessed[img1_index] = img1
+            else:
+                self.svhn_preprocessed[img1_index] = img1
+
+            if img2_dataset == 0:
+                self.mnist_preprocessed[img2_index] = img2
+            else:
+                self.svhn_preprocessed[img2_index] = img2
+
+        return img1, img2, matching
 
     def __len__(self):
         return len(self.pairs)
 
+    def make_pairs(self):
+        pairs = []
 
-def make_pairs(mix, mnist=None, svhn=None):
-    pairs = []
+        if self.dataset_type == DatasetType.MNIST or self.dataset_type == DatasetType.BOTH:
+            mnist_by_label = [np.where(self.mnist.targets == i)[0] for i in range(0, self.num_classes)]
 
-    num_classes = 10
+            for label in range(len(mnist_by_label)):
+                for anchor_image in mnist_by_label[label]:
 
-    if mix and mnist and svhn:
-        return mix_pairs(mnist, num_classes, svhn)
-    if svhn:
-        svhn_labels = svhn.labels
-        svhn_idx = [np.where(svhn_labels == i)[0] for i in range(0, num_classes)]
-        dataset_pos = 1
+                    pos_image = np.random.choice(mnist_by_label[label])
+                    pairs.append([0, anchor_image, 0, pos_image, 0])
 
-        for anchor_idx in range(len(svhn_labels)):
-            label = svhn_labels[anchor_idx]
+                    neg_label = np.random.randint(0, self.num_classes)
+                    while neg_label == label:
+                        neg_label = np.random.randint(0, self.num_classes)
 
-            pos_idx = np.random.choice(svhn_idx[label])
+                    neg_image = np.random.choice(mnist_by_label[neg_label])
+                    pairs.append([0, anchor_image, 0, neg_image, 1])
 
-            pairs.append([(dataset_pos, anchor_idx), (dataset_pos, pos_idx), 0])
+        if self.dataset_type == DatasetType.SVHN or self.dataset_type == DatasetType.BOTH:
+            svhn_by_label = [np.where(self.svhn.labels == i)[0] for i in range(0, self.num_classes)]
 
-            negative_label = np.random.randint(0, num_classes)
-            while negative_label == label:
-                negative_label = np.random.randint(0, num_classes)
+            for label in range(len(svhn_by_label)):
+                for anchor_image in svhn_by_label[label]:
 
-            neg_idx = np.random.choice(svhn_idx[negative_label])
+                    pos_image = np.random.choice(svhn_by_label[label])
 
-            pairs.append([(dataset_pos, anchor_idx), (dataset_pos, neg_idx), 1])
-    if mnist:
-        mnist_labels = mnist.targets
-        mnist_idx = [np.where(mnist_labels == i)[0] for i in range(0, num_classes)]
-        dataset_pos = 0
+                    pairs.append([1, anchor_image, 1, pos_image, 0])
 
-        for anchor_idx in range(len(mnist_labels)):
-            label = mnist_labels[anchor_idx]
+                    neg_label = np.random.randint(0, self.num_classes)
+                    while neg_label == label:
+                        neg_label = np.random.randint(0, self.num_classes)
 
-            pos_idx = np.random.choice(mnist_idx[label])
+                    neg_image = np.random.choice(svhn_by_label[neg_label])
 
-            pairs.append([(dataset_pos, anchor_idx), (dataset_pos, pos_idx), 0])
+                    pairs.append([1, anchor_image, 1, neg_image, 1])
 
-            negative_label = np.random.randint(0, num_classes)
-            while negative_label == label:
-                negative_label = np.random.randint(0, num_classes)
+        if self.dataset_type == DatasetType.MIX:
+            datasets_by_label = [[np.where(self.mnist.targets == i)[0] for i in range(0, self.num_classes)],
+                                 [np.where(self.svhn.labels == i)[0] for i in range(0, self.num_classes)]]
 
-            neg_idx = np.random.choice(mnist_idx[negative_label])
+            for dataset_index in range(len(datasets_by_label)):
+                dataset_by_label = datasets_by_label[dataset_index]
 
-            pairs.append([(dataset_pos, anchor_idx), (dataset_pos, neg_idx), 1])
+                for label in range(len(dataset_by_label)):
+                    for anchor_image in dataset_by_label[label]:
 
-    return pairs
+                        pos_dataset_index = np.random.randint(0, 2)
+                        pos_image = np.random.choice(datasets_by_label[pos_dataset_index][label])
 
+                        pairs.append([dataset_index, anchor_image, pos_dataset_index, pos_image, 0])
 
-def add_pairs_mix(dataset_labels, dataset_pos, mnist_idx, svhn_idx, num_classes):
-    pairs = []
-    for anchor_idx in range(len(dataset_labels)):
-        mnist_label = dataset_labels[anchor_idx]
+                        neg_dataset_index = np.random.randint(0, 2)
+                        neg_label = np.random.randint(0, self.num_classes)
+                        while neg_label == label:
+                            neg_label = np.random.randint(0, self.num_classes)
 
-        dataset_choice = np.random.randint(0, 2)
-        # 0 = MNIST, 1 = SVHN
+                        neg_image = np.random.choice(datasets_by_label[neg_dataset_index][neg_label])
 
-        if dataset_choice == 0:
-            pos_idx = np.random.choice(mnist_idx[mnist_label])
-        else:
-            pos_idx = np.random.choice(svhn_idx[mnist_label])
+                        pairs.append([dataset_index, anchor_image, neg_dataset_index, neg_image, 1])
 
-        pairs.append([(dataset_pos, anchor_idx), (dataset_choice, pos_idx), 0])
-
-        negative_label = np.random.randint(0, num_classes)
-        while negative_label == mnist_label:
-            negative_label = np.random.randint(0, num_classes)
-
-        dataset_choice = np.random.randint(0, 2)
-
-        if dataset_choice == 0:
-            neg_idx = np.random.choice(mnist_idx[negative_label])
-        else:
-            neg_idx = np.random.choice(svhn_idx[negative_label])
-
-        pairs.append([(dataset_pos, anchor_idx), (dataset_choice, neg_idx), 1])
-    return pairs
-
-
-def mix_pairs(mnist, num_classes, svhn):
-    pairs = []
-    ### Add mixing of datasets
-    mnist_labels = mnist.targets
-    svhn_labels = svhn.labels
-    mnist_idx = [np.where(mnist_labels == i)[0] for i in range(0, num_classes)]
-    svhn_idx = [np.where(svhn_labels == i)[0] for i in range(0, num_classes)]
-    mnist_dataset_pos = 0
-    svhn_dataset_pos = 1
-
-    pairs = pairs + add_pairs_mix(mnist_labels, mnist_dataset_pos, mnist_idx, svhn_idx, num_classes)
-
-    pairs = pairs + add_pairs_mix(svhn_labels, svhn_dataset_pos, mnist_idx, svhn_idx, num_classes)
-
-    return pairs
+        return pairs

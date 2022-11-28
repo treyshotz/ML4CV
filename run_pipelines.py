@@ -7,7 +7,7 @@ from torchvision.transforms import ToTensor
 
 import test
 import train
-from dataset2 import SiameseDataset, DatasetType
+from dataset import SiameseDataset, DatasetType
 from transforms import AdaptiveThreshold, EqualizeHist, ToNumpy, Resize, GrayScale
 
 
@@ -29,8 +29,8 @@ class Pipelines:
 
         del train_dataset
 
-        test_dataset = SiameseDataset(train=False, dataset_type=DatasetType.MIX, transform=self.transform)
-        test.test_pipeline(test_dataset=test_dataset, computing_device=self.device, num_workers=self.num_workers)
+        # test_dataset = SiameseDataset(train=False, dataset_type=DatasetType.MIX, transform=self.transform)
+        # test.test_pipeline(test_dataset=test_dataset, computing_device=self.device, num_workers=self.num_workers)
 
     def mnist_svhn_pipeline(self):
         k_fold = KFold(n_splits=self.k_fold_splits)
@@ -40,8 +40,8 @@ class Pipelines:
 
         del train_dataset
 
-        test_dataset = SiameseDataset(train=False, dataset_type=DatasetType.BOTH, transform=self.transform)
-        test.test_pipeline(test_dataset=test_dataset, computing_device=device, num_workers=self.num_workers)
+        # test_dataset = SiameseDataset(train=False, dataset_type=DatasetType.BOTH, transform=self.transform)
+        # test.test_pipeline(test_dataset=test_dataset, computing_device=device, num_workers=self.num_workers)
 
     def mnist_pipeline(self):
         k_fold = KFold(n_splits=self.k_fold_splits)
@@ -51,8 +51,8 @@ class Pipelines:
 
         del train_dataset
 
-        test_dataset = SiameseDataset(train=False, dataset_type=DatasetType.MNIST, transform=self.transform)
-        test.test_pipeline(test_dataset=test_dataset, computing_device=device, num_workers=self.num_workers)
+        # test_dataset = SiameseDataset(train=False, dataset_type=DatasetType.MNIST, transform=self.transform)
+        # test.test_pipeline(test_dataset=test_dataset, computing_device=device, num_workers=self.num_workers)
 
     def svhn_pipeline(self):
         k_fold = KFold(n_splits=self.k_fold_splits)
@@ -62,8 +62,8 @@ class Pipelines:
 
         del train_dataset
 
-        test_dataset = SiameseDataset(train=False, dataset_type=DatasetType.SVHN, transform=self.transform)
-        test.test_pipeline(test_dataset=test_dataset, computing_device=device, num_workers=self.num_workers)
+        # test_dataset = SiameseDataset(train=False, dataset_type=DatasetType.SVHN, transform=self.transform)
+        # test.test_pipeline(test_dataset=test_dataset, computing_device=device, num_workers=self.num_workers)
 
     def all_pipelines(self):
         self.mnist_svhn_mix_pipeline()
@@ -103,8 +103,8 @@ if __name__ == '__main__':
             ToNumpy(),
             Resize(),
             GrayScale(),
+            EqualizeHist(),
             ToTensor(),
-            EqualizeHist()
         ]),
         device=device,
         num_workers=1,
