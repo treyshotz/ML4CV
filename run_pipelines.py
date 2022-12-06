@@ -7,7 +7,7 @@ from torchvision.transforms import ToTensor
 
 import test
 import train
-from dataset import SiameseDataset, DatasetType
+from siamese_dataset import SiameseDataset, DatasetType
 from transforms import AdaptiveThreshold, EqualizeHist, ToNumpy, Resize, GrayScale
 
 

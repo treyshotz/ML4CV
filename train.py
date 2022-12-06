@@ -7,7 +7,7 @@ import copy
 from torch.utils.data import DataLoader
 
 from contrastive_loss import ContrastiveLoss
-from model import SiameseNetwork
+from siamese_model import SiameseNetwork
 
 device = ""
 
