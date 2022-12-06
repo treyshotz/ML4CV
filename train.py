@@ -1,13 +1,11 @@
+import copy
 import random
-import time
 
 import numpy as np
 import torch
-import copy
 from torch.utils.data import DataLoader
 
 from contrastive_loss import ContrastiveLoss
-from siamese_model import SiameseNetwork
 
 device = ""
 
@@ -57,7 +55,7 @@ def validate(model, criterion, dataloader):
     return loss.mean() / len(dataloader)
 
 
-def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, computing_device, num_workers):
+def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, computing_device, num_workers, model):
     global device
     best_model = ""
     device = computing_device
@@ -73,7 +71,7 @@ def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, computing_devi
         val_dataloader = DataLoader(train_dataset, batch_size=batch_size, sampler=val_subsampler,
                                     num_workers=num_workers)
 
-        net = SiameseNetwork().to(computing_device)
+        net = model.to(computing_device)
         contrastive_loss = ContrastiveLoss()
         adam = torch.optim.Adam(net.parameters(), lr=lr)
 

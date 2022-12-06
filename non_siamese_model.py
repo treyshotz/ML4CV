@@ -18,13 +18,13 @@ class NonSiameseNetwork(nn.Module):
         self.cnn2 = nn.Sequential(*(list(self.cnn2.children())[:-1]))
 
         self.fc1 = nn.Sequential(
-            nn.Linear(self.fc_in_features * 4, 256),
+            nn.Linear(self.fc_in_features, 256),
             nn.ReLU(inplace=True),
             nn.Linear(256, 1),
         )
 
         self.fc2 = nn.Sequential(
-            nn.Linear(self.fc_in_features * 4, 256),
+            nn.Linear(self.fc_in_features, 256),
             nn.ReLU(inplace=True),
             nn.Linear(256, 1),
         )
@@ -47,5 +47,5 @@ class NonSiameseNetwork(nn.Module):
         # forward pass of mnist input
         output1 = self.forward_once(input1)
         # forward pass of svhn input
-        output2 = self.forward_once(input2)
+        output2 = self.forward_second(input2)
         return output1, output2
