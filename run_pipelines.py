@@ -22,6 +22,7 @@ class Pipelines:
         self.num_workers = num_workers
 
     def mnist_svhn_mix_pipeline(self):
+        print("Starting mnist-svhn-mix pipeline")
         k_fold = KFold(n_splits=self.k_fold_splits)
         train_dataset = SiameseDataset(train=True, dataset_type=DatasetType.MIX, transform=self.transform)
         model = train.train_pipeline(epochs=self.epochs, k_fold=k_fold, batch_size=self.batch_size,
@@ -35,6 +36,7 @@ class Pipelines:
                            model=model)
 
     def mnist_svhn_pipeline(self):
+        print("Starting mnist-svhn pipeline")
         k_fold = KFold(n_splits=self.k_fold_splits)
         train_dataset = SiameseDataset(train=True, dataset_type=DatasetType.BOTH, transform=self.transform)
         model = train.train_pipeline(epochs=self.epochs, k_fold=k_fold, batch_size=self.batch_size,
@@ -48,6 +50,7 @@ class Pipelines:
                            model=model)
 
     def mnist_pipeline(self):
+        print("Starting mnist pipeline")
         k_fold = KFold(n_splits=self.k_fold_splits)
         train_dataset = SiameseDataset(train=True, dataset_type=DatasetType.MNIST, transform=self.transform)
         model = train.train_pipeline(epochs=self.epochs, k_fold=k_fold, batch_size=self.batch_size,
@@ -61,6 +64,7 @@ class Pipelines:
                            model=model)
 
     def svhn_pipeline(self):
+        print("Starting svhn pipeline")
         k_fold = KFold(n_splits=self.k_fold_splits)
         train_dataset = SiameseDataset(train=True, dataset_type=DatasetType.SVHN, transform=self.transform)
         model = train.train_pipeline(epochs=self.epochs, k_fold=k_fold, batch_size=self.batch_size,
@@ -86,7 +90,7 @@ if __name__ == '__main__':
 
     first_config = Pipelines(
         k_fold_splits=5,
-        batch_size=1028,
+        batch_size=1024,
         lr=0.001,
         epochs=20,
         transform=torchvision.transforms.Compose([
@@ -97,23 +101,25 @@ if __name__ == '__main__':
             ToTensor(),
         ]),
         device=device,
-        num_workers=1,
+        num_workers=2,
     )
 
     first_config.all_pipelines()
 
     second_config = Pipelines(
         k_fold_splits=5,
-        batch_size=1028,
+        batch_size=1024,
         lr=0.001,
         epochs=20,
         transform=torchvision.transforms.Compose([
             ToNumpy(),
             Resize(),
             GrayScale(),
-            EqualizeHist(),
             ToTensor(),
         ]),
         device=device,
-        num_workers=1,
+        num_workers=2,
     )
+
+    second_config.all_pipelines()
+

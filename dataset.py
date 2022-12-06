@@ -38,7 +38,7 @@ class SiameseDataset(Dataset):
 
         if self.pre_processed:
             img1 = self.mnist_preprocessed[img1_index] if (img1_dataset == 0) else self.svhn_preprocessed[img1_index]
-            img2 = self.svhn_preprocessed[img1_index] if (img1_dataset == 0) else self.svhn_preprocessed[img1_index]
+            img2 = self.mnist_preprocessed[img2_index] if (img2_dataset == 0) else self.svhn_preprocessed[img2_index]
 
         else:
             img1 = self.mnist.data[img1_index] if (img1_dataset == 0) else self.svhn.data[img1_index]

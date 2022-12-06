@@ -92,7 +92,7 @@ def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, computing_devi
             val_loss = validate(model=net, criterion=contrastive_loss, dataloader=val_dataloader)
             print(f"Val loss {val_loss}")
 
-            if (val_loss < best_loss):
+            if val_loss < best_loss:
                 best_loss = val_loss
                 best_epoch = epoch
                 best_model = copy.deepcopy(net)
@@ -100,9 +100,9 @@ def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, computing_devi
             else:
                 rounds_without_improvement += 1
 
-            if (rounds_without_improvement > 3 or epoch == epochs - 1):
+            if rounds_without_improvement > 5 or epoch == epochs - 1:
                 save_model(model=best_model,
                            name=f"fold{fold}-epoch{best_epoch + 1}-transforms{random.randint(0, 10000)}.pt")
                 break
 
-        return best_model
+    return best_model

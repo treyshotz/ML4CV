@@ -15,24 +15,25 @@ def test_pipeline(test_dataset, computing_device, num_workers, model):
 
     count = 1
     for img1, img2, label in test_dataloader:
+        img1, img2, label = img1.to(computing_device), img2.to(computing_device), label.to(computing_device)
         output1, output2 = model(img1, img2)
 
-        figure = plt.figure(figsize=(8, 8))
+        figure = plt.figure(figsize=(4, 4))
         figure.suptitle(f'Image no.{count}', fontsize=16)
 
-        ax = figure.add_subplot(1, 2, 1)
+        ax = figure.add_subplot(1, 1, 1)
         ax.set_title("Img1")
         plt.axis("off")
-        plt.imshow(img1.squeeze(), cmap="gray")
-        ax = figure.add_subplot(1, 2, 2)
+        plt.imshow(img1.cpu().squeeze(), cmap="gray")
+        ax = figure.add_subplot(1, 1, 2)
         ax.set_title("Img2")
         plt.axis("off")
-        plt.imshow(img2.squeeze(), cmap="gray")
+        plt.imshow(img2.cpu().squeeze(), cmap="gray")
 
         plt.show()
 
         print(f"Image no.{count}")
-        if label == torch.FloatTensor([[0]]):
+        if label.cpu() == torch.FloatTensor([[0]]):
             label = "Same numbers"
         else:
             label = "Different numbers"
