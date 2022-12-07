@@ -1,40 +1,63 @@
+import numpy as np
 import torch
 import torch.nn.functional as F
 from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader
 
 
-def test_pipeline(test_dataset, computing_device):
-    test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=True)
-    model = torch.jit.load("fold0epoch29.pt").to(computing_device)
+def test_pipeline(test_dataset, num_workers, model, batch_size, device):
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+
+    # Load from disk based on the model name
+    if isinstance(model, str):
+        model = torch.jit.load(f"{model}.pt")
+    model = model.to(device)
+    res = [[], []]
     count = 1
     for img1, img2, label in test_dataloader:
+        img1, img2, label = img1.to(device), img2.to(device), label.to(device)
         output1, output2 = model(img1, img2)
 
-        figure = plt.figure(figsize=(8, 8))
-        figure.suptitle(f'Image no.{count}', fontsize=16)
+        for i in range(len(output1)):
+            res[label[i]].append(F.pairwise_distance(output1[i], output2[i]).item())
 
-        ax = figure.add_subplot(1, 2, 1)
-        ax.set_title("Img1")
-        plt.axis("off")
-        plt.imshow(img1.squeeze(), cmap="gray")
-        ax = figure.add_subplot(1, 2, 2)
-        ax.set_title("Img2")
-        plt.axis("off")
-        plt.imshow(img2.squeeze(), cmap="gray")
+        if count < 10:
+            figure = plt.figure(figsize=(4, 4))
+            figure.suptitle(f'Image no.{count}', fontsize=16)
 
-        plt.show()
+            ax = figure.add_subplot(1, 2, 1)
+            ax.set_title("Img1")
+            plt.axis("off")
+            plt.imshow(img1[0].cpu().squeeze(), cmap="gray")
+            ax = figure.add_subplot(1, 2, 2)
+            ax.set_title("Img2")
+            plt.axis("off")
+            plt.imshow(img2[0].cpu().squeeze(), cmap="gray")
 
-        print(f"Image no.{count}")
-        if label == torch.FloatTensor([[0]]):
-            label = "Same numbers"
-        else:
-            label = "Different numbers"
+            plt.show()
 
-        print(f"Correct label: '{label}'")
-        print(F.pairwise_distance(output1, output2).item())
-        print()
+            print(f"Image no.{count}")
+            if label[0].cpu() == torch.FloatTensor([[0]]):
+                caption = "Same numbers"
+            else:
+                caption = "Different numbers"
+
+            print(f"Correct label: '{caption}'")
+            print(F.pairwise_distance(output1[0], output2[0]).item())
+            print()
 
         count += 1
-        if (count > 10):
-            break
+
+
+    print("\nImages with same number")
+    print(f"Mean: {torch.mean(torch.tensor(res[0]))}")
+    print(f"Std: {torch.std(torch.tensor(res[0]))}\n")
+
+    print("Images with different number")
+    print(f"Mean: {torch.mean(torch.tensor(res[1]))}")
+    print(f"Std: {torch.std(torch.tensor(res[1]))}\n")
+
+    fig = plt.figure(1, figsize=(9, 6))
+    ax = fig.add_subplot(11)
+    ax.boxplot(res)
+    plt.show()
