@@ -1,7 +1,6 @@
 from enum import Enum
 
 import numpy as np
-import torch
 import torchvision
 from torch.utils.data import Dataset
 
@@ -15,47 +14,30 @@ class DatasetType(Enum):
 
 class SiameseDataset(Dataset):
     def __init__(self, train: bool, dataset_type: DatasetType, transform=None):
-        self.mnist = None
-        self.svhn = None
         self.dataset_type = dataset_type
         self.transform = transform
-        self.pre_processed = False
 
         self.num_classes = 10
 
         if self.dataset_type != DatasetType.SVHN:
             self.mnist = torchvision.datasets.MNIST("files", train=train, download=True)
-            self.mnist_preprocessed = torch.zeros((len(self.mnist.data), 1, 28, 28))
+            print("Preprocessing MNIST")
+            self.mnist_preprocessed = list(map(self.transform, self.mnist.data))
+            print("MNIST preprocessed")
 
         if self.dataset_type != DatasetType.MNIST:
             self.svhn = torchvision.datasets.SVHN(root="data", split="train" if train else "test", download=True)
-            self.svhn_preprocessed = torch.zeros((len(self.svhn.data), 1, 28, 28))
+            print("Preprocessing SVHN")
+            self.svhn_preprocessed = list(map(self.transform, self.svhn.data))
+            print("SVHN preprocessed")
 
         self.pairs = self.make_pairs()
 
     def __getitem__(self, index):
         img1_dataset, img1_index, img2_dataset, img2_index, matching = self.pairs[index]
 
-        if self.pre_processed:
-            img1 = self.mnist_preprocessed[img1_index] if (img1_dataset == 0) else self.svhn_preprocessed[img1_index]
-            img2 = self.mnist_preprocessed[img2_index] if (img2_dataset == 0) else self.svhn_preprocessed[img2_index]
-
-        else:
-            img1 = self.mnist.data[img1_index] if (img1_dataset == 0) else self.svhn.data[img1_index]
-            img2 = self.mnist.data[img2_index] if (img2_dataset == 0) else self.svhn.data[img2_index]
-
-            img1 = self.transform(img1)
-            img2 = self.transform(img2)
-
-            if img1_dataset == 0:
-                self.mnist_preprocessed[img1_index] = img1
-            else:
-                self.svhn_preprocessed[img1_index] = img1
-
-            if img2_dataset == 0:
-                self.mnist_preprocessed[img2_index] = img2
-            else:
-                self.svhn_preprocessed[img2_index] = img2
+        img1 = self.mnist_preprocessed[img1_index] if (img1_dataset == 0) else self.svhn_preprocessed[img1_index]
+        img2 = self.mnist_preprocessed[img2_index] if (img2_dataset == 0) else self.svhn_preprocessed[img2_index]
 
         return img1, img2, matching
 

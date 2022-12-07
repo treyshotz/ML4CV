@@ -12,23 +12,10 @@ class SiameseNetwork(nn.Module):
         self.cnn1.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(1, 1), padding=(1, 1))
         self.cnn1 = nn.Sequential(*(list(self.cnn1.children())[:-1]))
 
-        #
-        # self.cnn1 = nn.Sequential(
-        #     nn.Conv2d(1, 8, kernel_size=3, stride=1, padding=1),
-        #     nn.BatchNorm2d(8),
-        #     nn.ReLU(inplace=True),
-        #     nn.MaxPool2d(kernel_size=2, stride=2),
-        #
-        #     nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1),
-        #     nn.BatchNorm2d(16),
-        #     nn.ReLU(inplace=True),
-        #     nn.MaxPool2d(kernel_size=2, stride=2),
-        # )
-
         self.fc1 = nn.Sequential(
             nn.Linear(self.fc_in_features, 256),
             nn.ReLU(inplace=True),
-            nn.Linear(256, 1),
+            nn.Linear(256, 10),
         )
 
     def forward_once(self, x):

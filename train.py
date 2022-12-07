@@ -7,10 +7,8 @@ from torch.utils.data import DataLoader
 
 from contrastive_loss import ContrastiveLoss
 
-device = ""
 
-
-def train(model, optimizer, criterion, dataloader):
+def train(model, optimizer, criterion, dataloader, device):
     model.train()
 
     loss = []
@@ -37,9 +35,10 @@ def save_model(model, name):
     example2 = torch.randn(1, 1, 28, 28)
     traced_script_module = torch.jit.trace(model.cpu(), (example1, example2))
     torch.jit.save(traced_script_module, name)
+    print(f"Saved model with name: {name}")
 
 
-def validate(model, criterion, dataloader):
+def validate(model, criterion, dataloader, device):
     model.eval()
     loss = []
 
@@ -55,10 +54,8 @@ def validate(model, criterion, dataloader):
     return loss.mean() / len(dataloader)
 
 
-def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, computing_device, num_workers, model):
-    global device
+def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, device, num_workers, model):
     best_model = ""
-    device = computing_device
 
     global contrastive_loss
     for fold, (train_idx, val_idx) in enumerate(k_fold.split(train_dataset)):
@@ -71,9 +68,9 @@ def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, computing_devi
         val_dataloader = DataLoader(train_dataset, batch_size=batch_size, sampler=val_subsampler,
                                     num_workers=num_workers)
 
-        net = model.to(computing_device)
+        net = model().to(device)
         contrastive_loss = ContrastiveLoss()
-        adam = torch.optim.Adam(net.parameters(), lr=lr)
+        adam = torch.optim.Adam(net.parameters(), lr=lr, weight_decay=0.001)
 
         rounds_without_improvement = 0
         best_loss = float('inf')
@@ -83,11 +80,10 @@ def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, computing_devi
         for epoch in range(epochs):
             print(f"--EPOCH {epoch + 1}--")
 
-            train_loss = train(model=net, optimizer=adam, criterion=contrastive_loss, dataloader=train_dataloader)
-            train_dataset.pre_processed = True
+            train_loss = train(model=net, optimizer=adam, criterion=contrastive_loss, device=device, dataloader=train_dataloader)
             print(f"Train loss {train_loss}")
 
-            val_loss = validate(model=net, criterion=contrastive_loss, dataloader=val_dataloader)
+            val_loss = validate(model=net, criterion=contrastive_loss, device=device, dataloader=val_dataloader)
             print(f"Val loss {val_loss}")
 
             if val_loss < best_loss:
@@ -100,7 +96,7 @@ def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, computing_devi
 
             if rounds_without_improvement > 5 or epoch == epochs - 1:
                 save_model(model=best_model,
-                           name=f"fold{fold}-epoch{best_epoch + 1}-transforms{random.randint(0, 10000)}.pt")
+                           name=f"fold{fold + 1}-epoch{best_epoch + 1}-transforms{random.randint(0, 10000)}.pt")
                 break
 
     return best_model

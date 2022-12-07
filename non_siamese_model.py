@@ -20,13 +20,13 @@ class NonSiameseNetwork(nn.Module):
         self.fc1 = nn.Sequential(
             nn.Linear(self.fc_in_features, 256),
             nn.ReLU(inplace=True),
-            nn.Linear(256, 1),
+            nn.Linear(256, 10),
         )
 
         self.fc2 = nn.Sequential(
             nn.Linear(self.fc_in_features, 256),
             nn.ReLU(inplace=True),
-            nn.Linear(256, 1),
+            nn.Linear(256, 10),
         )
 
     def forward_once(self, x):
