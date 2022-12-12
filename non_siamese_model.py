@@ -8,7 +8,7 @@ class NonSiameseNetwork(nn.Module):
 
         #By design of the dataset input 1 will always be mnist and input 2 will always be svhn
 
-        self.cnn1 = torchvision.models.resnet50(pretrained=False)
+        self.cnn1 = torchvision.models.resnet18(pretrained=False)
         self.fc_in_features = self.cnn1.fc.in_features
         self.cnn1.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(1, 1), padding=(1, 1))
         self.cnn1 = nn.Sequential(*(list(self.cnn1.children())[:-1]))
