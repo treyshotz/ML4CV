@@ -14,7 +14,7 @@ from transforms import AdaptiveThreshold, ToNumpy, Resize, GrayScale
 
 class Pipelines:
     def __init__(self, k_fold_splits, batch_size, lr, epochs, transform, device, num_workers, siamese: bool):
-        self.k_fold_splits = k_fold_splits
+        self.k_fold = KFold(n_splits=k_fold_splits, shuffle=True)
         self.batch_size = batch_size
         self.lr = lr
         self.epochs = epochs
@@ -31,10 +31,9 @@ class Pipelines:
 
     def mnist_svhn_mix_pipeline(self):
         print("Starting mnist-svhn-mix pipeline")
-        k_fold = KFold(n_splits=self.k_fold_splits)
 
         train_dataset = self.dataset(train=True, dataset_type=DatasetType.MIX, transform=self.transform)
-        model = train_pipeline(epochs=self.epochs, k_fold=k_fold, batch_size=self.batch_size,
+        model = train_pipeline(epochs=self.epochs, k_fold=self.k_fold, batch_size=self.batch_size,
                                train_dataset=train_dataset, lr=self.lr, device=self.device,
                                num_workers=self.num_workers, model=self.model)
 
@@ -47,9 +46,8 @@ class Pipelines:
 
     def mnist_svhn_pipeline(self):
         print("Starting mnist-svhn pipeline")
-        k_fold = KFold(n_splits=self.k_fold_splits)
         train_dataset = self.dataset(train=True, dataset_type=DatasetType.BOTH, transform=self.transform)
-        model = train_pipeline(epochs=self.epochs, k_fold=k_fold, batch_size=self.batch_size,
+        model = train_pipeline(epochs=self.epochs, k_fold=self.k_fold, batch_size=self.batch_size,
                                train_dataset=train_dataset, lr=self.lr, device=device,
                                num_workers=self.num_workers, model=self.model)
 
@@ -62,9 +60,8 @@ class Pipelines:
 
     def mnist_pipeline(self):
         print("Starting mnist pipeline")
-        k_fold = KFold(n_splits=self.k_fold_splits)
         train_dataset = self.dataset(train=True, dataset_type=DatasetType.MNIST, transform=self.transform)
-        model = train_pipeline(epochs=self.epochs, k_fold=k_fold, batch_size=self.batch_size,
+        model = train_pipeline(epochs=self.epochs, k_fold=self.k_fold, batch_size=self.batch_size,
                                train_dataset=train_dataset, lr=self.lr, device=device,
                                num_workers=self.num_workers, model=self.model)
 
@@ -77,9 +74,8 @@ class Pipelines:
 
     def svhn_pipeline(self):
         print("Starting svhn pipeline")
-        k_fold = KFold(n_splits=self.k_fold_splits)
         train_dataset = self.dataset(train=True, dataset_type=DatasetType.SVHN, transform=self.transform)
-        model = train_pipeline(epochs=self.epochs, k_fold=k_fold, batch_size=self.batch_size,
+        model = train_pipeline(epochs=self.epochs, k_fold=self.k_fold, batch_size=self.batch_size,
                                train_dataset=train_dataset, lr=self.lr, device=device,
                                num_workers=self.num_workers, model=self.model)
 
