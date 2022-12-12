@@ -105,7 +105,7 @@ if __name__ == '__main__':
         k_fold_splits=5,
         batch_size=1024,
         lr=0.001,
-        epochs=15,
+        epochs=10,
         transform=torchvision.transforms.Compose([
             ToNumpy(),
             Resize(),
@@ -125,7 +125,7 @@ if __name__ == '__main__':
         k_fold_splits=5,
         batch_size=1024,
         lr=0.001,
-        epochs=15,
+        epochs=10,
         transform=torchvision.transforms.Compose([
             ToNumpy(),
             Resize(),
@@ -144,7 +144,7 @@ if __name__ == '__main__':
         k_fold_splits=5,
         batch_size=1024,
         lr=0.001,
-        epochs=15,
+        epochs=10,
         transform=torchvision.transforms.Compose([
             ToNumpy(),
             Resize(),
