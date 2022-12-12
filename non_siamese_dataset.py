@@ -16,7 +16,7 @@ class NonSiameseDataset(Dataset):
         self.mnist_preprocessed = list(map(self.transform, self.mnist.data))
         print("MNIST preprocessed")
 
-        self.svhn = torchvision.datasets.SVHN(root="data", split="train" if train else "test", download=True)
+        self.svhn = torchvision.datasets.SVHN(root="data", split="extra" if train else "test", download=True)
         print("Preprocessing SVHN")
         self.svhn_preprocessed = list(map(self.transform, self.svhn.data))
         print("SVHN preprocessed")
@@ -38,6 +38,9 @@ class NonSiameseDataset(Dataset):
         pairs = []
         datasets_by_label = [[np.where(self.mnist.targets == i)[0] for i in range(0, self.num_classes)],
                              [np.where(self.svhn.labels == i)[0] for i in range(0, self.num_classes)]]
+
+        for i in range(0, len(datasets_by_label[1])):
+            datasets_by_label[1][i] = datasets_by_label[1][i][0:6000]
 
         for dataset_index in range(len(datasets_by_label)):
             dataset_by_label = datasets_by_label[dataset_index]
