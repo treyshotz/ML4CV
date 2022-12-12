@@ -6,7 +6,7 @@ class SiameseNetwork(nn.Module):
     def __init__(self):
         super(SiameseNetwork, self).__init__()
 
-        self.cnn1 = torchvision.models.resnet50(pretrained=False)
+        self.cnn1 = torchvision.models.resnet18(pretrained=False)
         self.fc_in_features = self.cnn1.fc.in_features
 
         self.cnn1.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(1, 1), padding=(1, 1))
