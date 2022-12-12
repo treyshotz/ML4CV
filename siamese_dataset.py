@@ -26,7 +26,7 @@ class SiameseDataset(Dataset):
             print("MNIST preprocessed")
 
         if self.dataset_type != DatasetType.MNIST:
-            self.svhn = torchvision.datasets.SVHN(root="data", split="train" if train else "test", download=True)
+            self.svhn = torchvision.datasets.SVHN(root="data", split="extra" if train else "test", download=True)
             print("Preprocessing SVHN")
             self.svhn_preprocessed = list(map(self.transform, self.svhn.data))
             print("SVHN preprocessed")
@@ -65,6 +65,8 @@ class SiameseDataset(Dataset):
 
         if self.dataset_type == DatasetType.SVHN or self.dataset_type == DatasetType.BOTH:
             svhn_by_label = [np.where(self.svhn.labels == i)[0] for i in range(0, self.num_classes)]
+            for i in range(0, self.num_classes):
+                svhn_by_label[i] = svhn_by_label[i][0:6000]
 
             for label in range(len(svhn_by_label)):
                 for anchor_image in svhn_by_label[label]:
@@ -84,6 +86,8 @@ class SiameseDataset(Dataset):
         if self.dataset_type == DatasetType.MIX:
             datasets_by_label = [[np.where(self.mnist.targets == i)[0] for i in range(0, self.num_classes)],
                                  [np.where(self.svhn.labels == i)[0] for i in range(0, self.num_classes)]]
+            for i in range(0, len(datasets_by_label[1])):
+                datasets_by_label[1][i] = datasets_by_label[1][i][0:6000]
 
             for dataset_index in range(len(datasets_by_label)):
                 dataset_by_label = datasets_by_label[dataset_index]
