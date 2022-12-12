@@ -5,14 +5,27 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from contrastive_loss import ContrastiveLoss
+from contrastive_loss import ContrastiveLoss, threshold_contrastive_loss
+
+
+def reset_weights(m):
+    '''
+    Try resetting model weights to avoid
+    weight leakage.
+    '''
+    for layer in m.children():
+        if hasattr(layer, 'reset_parameters'):
+            # print(f'Reset trainable parameters of layer = {layer}')
+            layer.reset_parameters()
 
 
 def train(model, optimizer, criterion, dataloader, device):
     model.train()
 
+    binary_threshold = 1.
     loss = []
-
+    correct = 0
+    total = 0.
     for img1, img2, label in dataloader:
         optimizer.zero_grad()
 
@@ -24,8 +37,12 @@ def train(model, optimizer, criterion, dataloader, device):
         optimizer.step()
         loss.append(loss_contrastive.item())
 
+        output_label = threshold_contrastive_loss(output1, output2, binary_threshold).to(device)
+        total += len(label)
+        correct += (output_label == label).sum().item()
+
     loss = np.array(loss)
-    return loss.mean() / len(dataloader)
+    return loss.mean() / len(dataloader), correct / total
 
 
 def save_model(model, name):
@@ -40,8 +57,11 @@ def save_model(model, name):
 
 def validate(model, criterion, dataloader, device):
     model.eval()
-    loss = []
 
+    binary_threshold = 1.
+    loss = []
+    correct = 0
+    total = 0.
     with torch.no_grad():
         for img1, img2, label in dataloader:
             img1, img2, label = img1.to(device), img2.to(device), label.to(device)
@@ -50,14 +70,18 @@ def validate(model, criterion, dataloader, device):
             loss_contrastive = criterion(output1, output2, label)
             loss.append(loss_contrastive.item())
 
+            output_label = threshold_contrastive_loss(output1, output2, binary_threshold).to(device)
+            total += len(label)
+            correct += (output_label == label).sum().item()
+
         loss = np.array(loss)
-    return loss.mean() / len(dataloader)
+    return loss.mean() / len(dataloader), correct / total
 
 
 def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, device, num_workers, model):
+    contrastive_loss = ContrastiveLoss()
     best_model = ""
 
-    global contrastive_loss
     for fold, (train_idx, val_idx) in enumerate(k_fold.split(train_dataset)):
 
         train_subsampler = torch.utils.data.SubsetRandomSampler(train_idx)
@@ -68,8 +92,10 @@ def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, device, num_wo
         val_dataloader = DataLoader(train_dataset, batch_size=batch_size, sampler=val_subsampler,
                                     num_workers=num_workers)
 
-        net = model().to(device)
-        contrastive_loss = ContrastiveLoss()
+        net = model()
+        net.apply(reset_weights)
+        net = net.to(device)
+
         adam = torch.optim.Adam(net.parameters(), lr=lr, weight_decay=0.001)
 
         rounds_without_improvement = 0
@@ -80,11 +106,15 @@ def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, device, num_wo
         for epoch in range(epochs):
             print(f"--EPOCH {epoch + 1}--")
 
-            train_loss = train(model=net, optimizer=adam, criterion=contrastive_loss, device=device, dataloader=train_dataloader)
+            train_loss, train_acc = train(model=net, optimizer=adam, criterion=contrastive_loss, device=device,
+                                          dataloader=train_dataloader)
             print(f"Train loss {train_loss}")
+            print(f"Train acc {train_acc}")
 
-            val_loss = validate(model=net, criterion=contrastive_loss, device=device, dataloader=val_dataloader)
+            val_loss, val_acc = validate(model=net, criterion=contrastive_loss, device=device,
+                                         dataloader=val_dataloader)
             print(f"Val loss {val_loss}")
+            print(f"Val acc {val_acc}")
 
             if val_loss < best_loss:
                 best_loss = val_loss
@@ -94,9 +124,10 @@ def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, device, num_wo
             else:
                 rounds_without_improvement += 1
 
-            if rounds_without_improvement > 5 or epoch == epochs - 1:
-                save_model(model=best_model,
-                           name=f"fold{fold + 1}-epoch{best_epoch + 1}-transforms{random.randint(0, 10000)}.pt")
+            if rounds_without_improvement > 3:
                 break
+
+        save_model(model=best_model,
+                   name=f"fold{fold + 1}-epoch{best_epoch + 1}-transforms{random.randint(0, 10000)}.pt")
 
     return best_model
