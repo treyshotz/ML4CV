@@ -8,6 +8,7 @@ from siamese_dataset import DatasetType
 class NonSiameseDataset(Dataset):
     def __init__(self, train: bool, dataset_type: DatasetType, transform=None):
         self.transform = transform
+        self.train = train
 
         self.num_classes = 10
 
@@ -40,6 +41,7 @@ class NonSiameseDataset(Dataset):
                              [np.where(self.svhn.labels == i)[0] for i in range(0, self.num_classes)]]
 
         for i in range(0, len(datasets_by_label[1])):
+            limit = 6000 if self.train is True else 1000
             datasets_by_label[1][i] = datasets_by_label[1][i][0:6000]
 
         for dataset_index in range(len(datasets_by_label)):

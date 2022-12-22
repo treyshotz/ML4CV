@@ -16,6 +16,7 @@ class SiameseDataset(Dataset):
     def __init__(self, train: bool, dataset_type: DatasetType, transform=None):
         self.dataset_type = dataset_type
         self.transform = transform
+        self.train = train
 
         self.num_classes = 10
 
@@ -66,7 +67,8 @@ class SiameseDataset(Dataset):
         if self.dataset_type == DatasetType.SVHN or self.dataset_type == DatasetType.BOTH:
             svhn_by_label = [np.where(self.svhn.labels == i)[0] for i in range(0, self.num_classes)]
             for i in range(0, self.num_classes):
-                svhn_by_label[i] = svhn_by_label[i][0:6000]
+                limit = 6000 if self.train is True else 1000
+                svhn_by_label[i] = svhn_by_label[i][0:limit]
 
             for label in range(len(svhn_by_label)):
                 for anchor_image in svhn_by_label[label]:
@@ -87,7 +89,8 @@ class SiameseDataset(Dataset):
             datasets_by_label = [[np.where(self.mnist.targets == i)[0] for i in range(0, self.num_classes)],
                                  [np.where(self.svhn.labels == i)[0] for i in range(0, self.num_classes)]]
             for i in range(0, len(datasets_by_label[1])):
-                datasets_by_label[1][i] = datasets_by_label[1][i][0:6000]
+                limit = 6000 if self.train is True else 1000
+                datasets_by_label[1][i] = datasets_by_label[1][i][0:limit]
 
             for dataset_index in range(len(datasets_by_label)):
                 dataset_by_label = datasets_by_label[dataset_index]
