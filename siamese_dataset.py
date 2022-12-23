@@ -18,14 +18,17 @@ class SiameseDataset(Dataset):
         self.transform = transform
         self.train = train
 
+        # Numbers 0 to 9 as a total of 10 classes
         self.num_classes = 10
 
+        # Unless the dataset is set to only SVHN we include the MNIST
         if self.dataset_type != DatasetType.SVHN:
             self.mnist = torchvision.datasets.MNIST("files", train=train, download=True)
             print("Preprocessing MNIST")
             self.mnist_preprocessed = list(map(self.transform, self.mnist.data))
             print("MNIST preprocessed")
 
+        # Unless the dataset is set to only MNIST we include the SVHN
         if self.dataset_type != DatasetType.MNIST:
             self.svhn = torchvision.datasets.SVHN(root="data", split="extra" if train else "test", download=True)
             print("Preprocessing SVHN")
@@ -46,6 +49,14 @@ class SiameseDataset(Dataset):
         return len(self.pairs)
 
     def make_pairs(self):
+        """
+            Generating index pairs from images within the datasets.
+            For each image one positive and one negative image pair is generated.
+            If type is set to MIX it mixes pairs between MNIST and SVHN.
+            If type is set to BOTH it uses images between MNIST and SVHN separately.
+            If type is set to SVHN it uses only SVHN dataset.
+            If type is set to MNIST it uses only MNIST dataset.
+        """
         pairs = []
 
         if self.dataset_type == DatasetType.MNIST or self.dataset_type == DatasetType.BOTH:

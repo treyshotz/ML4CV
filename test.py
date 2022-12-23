@@ -13,26 +13,36 @@ def test_pipeline(test_dataset, num_workers, model, batch_size, device):
     if isinstance(model, str):
         model = torch.jit.load(f"{model}.pt")
     model = model.to(device)
+
+    # Array that keeps track on euclidean distance based on true label
     res = [[], []]
     count = 1
 
+    # Classify images as different if above this value
     binary_threshold = 1.
 
+    # Keeping track num of correct predictions and total predictions
     correct = 0
     total = 0.
 
     with torch.no_grad():
         for img1, img2, label in test_dataloader:
             img1, img2, label = img1.to(device), img2.to(device), label.to(device)
+
+            # Generating output for current batch
             output1, output2 = model(img1, img2)
 
+            # Generating similar/dissimilar predictions based on output and distance threshold
             output_label = threshold_contrastive_loss(output1, output2, binary_threshold).to(device)
+
             total += len(label)
             correct += (output_label == label).sum().item()
 
+            # Add distance to collection based on true label between the images
             for i in range(len(output1)):
                 res[label[i]].append(F.pairwise_distance(output1[i], output2[i]).item())
 
+            # Plot test examples and display distance and true label
             if count < 10:
                 figure = plt.figure(figsize=(4, 4))
                 figure.suptitle(f'Image no.{count}', fontsize=16)
@@ -60,6 +70,7 @@ def test_pipeline(test_dataset, num_workers, model, batch_size, device):
 
             count += 1
 
+        # Print mean and standard deviation based on distance from the different categories
         print("\nImages with same number")
         print(f"Mean: {torch.mean(torch.tensor(res[0]))}")
         print(f"Std: {torch.std(torch.tensor(res[0]))}\n")

@@ -9,10 +9,10 @@ from contrastive_loss import ContrastiveLoss, threshold_contrastive_loss
 
 
 def reset_weights(m):
-    '''
+    """
     Try resetting model weights to avoid
-    weight leakage.
-    '''
+    weight leakage. Experienced this when using k-fold
+    """
     for layer in m.children():
         if hasattr(layer, 'reset_parameters'):
             # print(f'Reset trainable parameters of layer = {layer}')
@@ -22,7 +22,9 @@ def reset_weights(m):
 def train(model, optimizer, criterion, dataloader, device):
     model.train()
 
+    # If image pair has distance above this value they are considered as dissimilar
     binary_threshold = 1.
+
     loss = []
     correct = 0
     total = 0.
@@ -58,7 +60,9 @@ def save_model(model, name):
 def validate(model, criterion, dataloader, device):
     model.eval()
 
+    # If image pair has distance above this value they are considered as dissimilar
     binary_threshold = 1.
+
     loss = []
     correct = 0
     total = 0.
@@ -84,9 +88,9 @@ def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, device, num_wo
 
     for fold, (train_idx, val_idx) in enumerate(k_fold.split(train_dataset)):
 
+        # Creating val loader and train loader based on current fold split
         train_subsampler = torch.utils.data.SubsetRandomSampler(train_idx)
         val_subsampler = torch.utils.data.SubsetRandomSampler(val_idx)
-
         train_dataloader = DataLoader(train_dataset, batch_size=batch_size, sampler=train_subsampler,
                                       num_workers=num_workers)
         val_dataloader = DataLoader(train_dataset, batch_size=batch_size, sampler=val_subsampler,
@@ -108,14 +112,13 @@ def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, device, num_wo
 
             train_loss, train_acc = train(model=net, optimizer=adam, criterion=contrastive_loss, device=device,
                                           dataloader=train_dataloader)
-            print(f"Train loss {train_loss}")
-            print(f"Train acc {train_acc}")
+            print(f"Train loss {train_loss:.5f}, Train acc {train_acc:.5f}")
 
             val_loss, val_acc = validate(model=net, criterion=contrastive_loss, device=device,
                                          dataloader=val_dataloader)
-            print(f"Val loss {val_loss}")
-            print(f"Val acc {val_acc}")
+            print(f"Val loss {val_loss:.5f}, Val acc {val_acc:.5f}")
 
+            # Saving best model so far
             if val_loss < best_loss:
                 best_loss = val_loss
                 best_epoch = epoch
@@ -124,6 +127,7 @@ def train_pipeline(epochs, k_fold, batch_size, train_dataset, lr, device, num_wo
             else:
                 rounds_without_improvement += 1
 
+            # Early stopping if model cease to improve
             if rounds_without_improvement > 3:
                 break
 
