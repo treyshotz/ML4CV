@@ -10,6 +10,7 @@ class NonSiameseDataset(Dataset):
         self.transform = transform
         self.train = train
 
+        # Numbers 0 to 9 as a total of 10 classes
         self.num_classes = 10
 
         self.mnist = torchvision.datasets.MNIST("files", train=train, download=True)
@@ -36,6 +37,10 @@ class NonSiameseDataset(Dataset):
         return len(self.pairs)
 
     def make_pairs(self):
+        """
+            Generating index pairs from images within the datasets.
+            For each image one positive and one negative image pair is generated.
+        """
         pairs = []
         datasets_by_label = [[np.where(self.mnist.targets == i)[0] for i in range(0, self.num_classes)],
                              [np.where(self.svhn.labels == i)[0] for i in range(0, self.num_classes)]]
